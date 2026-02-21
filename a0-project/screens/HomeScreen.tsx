@@ -95,22 +95,38 @@ export default function HomeScreen() {
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
-        setLocationName('Location Access Denied');
-        return;
-      }
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setErrorMsg('Permission to access location was denied');
+          setLocationName('Default Location - Enable GPS for precise location');
+          return;
+        }
 
-      let location = await Location.getCurrentPositionAsync({});
-      let reverseGeocodedAddress = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
+        let location = await Location.getCurrentPositionAsync({});
+        
+        // Try to reverse geocode, but use default location if it fails
+        try {
+          let reverseGeocodedAddress = await Location.reverseGeocodeAsync({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
 
-      if (reverseGeocodedAddress.length > 0) {
-        const addr = reverseGeocodedAddress[0];
-        setLocationName(`${addr.city || addr.region}, ${addr.country}`);
+          if (reverseGeocodedAddress.length > 0) {
+            const addr = reverseGeocodedAddress[0];
+            const cityName = addr.city || addr.district || addr.region || 'Your Region';
+            setLocationName(`${cityName}, ${addr.country || 'India'}`);
+          } else {
+            setLocationName(`Latitude: ${location.coords.latitude.toFixed(2)}, Longitude: ${location.coords.longitude.toFixed(2)}`);
+          }
+        } catch (geocodeError) {
+          console.log('Geocoding failed, using coordinates:', geocodeError);
+          setLocationName(`Latitude: ${location.coords.latitude.toFixed(2)}, Longitude: ${location.coords.longitude.toFixed(2)}`);
+        }
+      } catch (error) {
+        console.error('Location error:', error);
+        setErrorMsg('Unable to fetch location');
+        setLocationName('Your Farm Location - Update in Settings');
       }
     })();
   }, []);

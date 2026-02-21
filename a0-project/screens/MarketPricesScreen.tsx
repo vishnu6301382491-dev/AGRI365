@@ -179,6 +179,108 @@ export default function MarketPricesScreen() {
         confidence: 81,
         recommendation: 'buy'
       }
+    },
+    {
+      id: '7',
+      name: 'Cotton',
+      currentPrice: 52.85,
+      previousPrice: 51.40,
+      change: 1.45,
+      changePercent: 2.82,
+      unit: '₹/kg',
+      market: 'Gujarat Mandi',
+      lastUpdated: new Date(),
+      trend: 'up',
+      prediction: {
+        nextDay: 54.20,
+        confidence: 78,
+        recommendation: 'buy'
+      }
+    },
+    {
+      id: '8',
+      name: 'Chilli (Dried)',
+      currentPrice: 98.50,
+      previousPrice: 95.00,
+      change: 3.50,
+      changePercent: 3.68,
+      unit: '₹/kg',
+      market: 'Guntur Market',
+      lastUpdated: new Date(),
+      trend: 'up',
+      prediction: {
+        nextDay: 101.25,
+        confidence: 84,
+        recommendation: 'buy'
+      }
+    },
+    {
+      id: '9',
+      name: 'Turmeric (Dried)',
+      currentPrice: 65.25,
+      previousPrice: 64.10,
+      change: 1.15,
+      changePercent: 1.79,
+      unit: '₹/kg',
+      market: 'Sangli Market',
+      lastUpdated: new Date(),
+      trend: 'up',
+      prediction: {
+        nextDay: 67.80,
+        confidence: 82,
+        recommendation: 'hold'
+      }
+    },
+    {
+      id: '10',
+      name: 'Soybean',
+      currentPrice: 42.60,
+      previousPrice: 43.90,
+      change: -1.30,
+      changePercent: -2.96,
+      unit: '₹/kg',
+      market: 'Indore Mandi',
+      lastUpdated: new Date(),
+      trend: 'down',
+      prediction: {
+        nextDay: 41.50,
+        confidence: 80,
+        recommendation: 'sell'
+      }
+    },
+    {
+      id: '11',
+      name: 'Maize',
+      currentPrice: 38.75,
+      previousPrice: 37.50,
+      change: 1.25,
+      changePercent: 3.33,
+      unit: '₹/kg',
+      market: 'Karnataka Mandi',
+      lastUpdated: new Date(),
+      trend: 'up',
+      prediction: {
+        nextDay: 39.80,
+        confidence: 77,
+        recommendation: 'hold'
+      }
+    },
+    {
+      id: '12',
+      name: 'Groundnut',
+      currentPrice: 67.40,
+      previousPrice: 66.20,
+      change: 1.20,
+      changePercent: 1.81,
+      unit: '₹/kg',
+      market: 'Tamil Nadu Mandi',
+      lastUpdated: new Date(),
+      trend: 'up',
+      prediction: {
+        nextDay: 69.15,
+        confidence: 83,
+        recommendation: 'buy'
+      }
     }
   ];
 
@@ -256,20 +358,24 @@ export default function MarketPricesScreen() {
     sentiment: 'bullish',
     topGainers: [
       { name: 'Tomato', change: 7.69 },
-      { name: 'Sugarcane', change: 1.79 },
-      { name: 'Rice (Basmati)', change: 3.14 }
+      { name: 'Chilli (Dried)', change: 3.68 },
+      { name: 'Maize', change: 3.33 },
+      { name: 'Rice (Basmati)', change: 3.14 },
+      { name: 'Cotton', change: 2.82 }
     ],
     topLosers: [
-      { name: 'Onion', change: -4.80 },
-      { name: 'Wheat', change: -2.87 }
+      { name: 'Soybean', change: -2.96 },
+      { name: 'Wheat', change: -2.87 },
+      { name: 'Onion', change: -4.80 }
     ],
     keyEvents: [
       '9:00 AM - Market Opens',
       '12:30 PM - APMC Price Update',
+      '2:00 PM - Spice Market Peak Trading',
       '3:00 PM - Weather Alert: Good Rainfall Expected',
       '5:30 PM - Market Close'
     ],
-    marketIndex: 102.5
+    marketIndex: 105.8
   };
 
   const categories = ['All', 'Grains', 'Vegetables', 'Fruits', 'Spices', 'Dairy'];
