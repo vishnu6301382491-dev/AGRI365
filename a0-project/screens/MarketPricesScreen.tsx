@@ -43,6 +43,16 @@ interface MarketNews {
   timestamp: Date;
 }
 
+interface DailyMarketUpdate {
+  date: Date;
+  status: 'open' | 'closed' | 'closing-soon';
+  sentiment: 'bullish' | 'bearish' | 'neutral';
+  topGainers: { name: string; change: number }[];
+  topLosers: { name: string; change: number }[];
+  keyEvents: string[];
+  marketIndex: number;
+}
+
 interface GroceryItem {
   id: string;
   name: string;
@@ -59,6 +69,7 @@ export default function MarketPricesScreen() {
   const [commodities, setCommodities] = useState<CommodityPrice[]>([]);
   const [marketNews, setMarketNews] = useState<MarketNews[]>([]);
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
+  const [dailyMarketUpdate, setDailyMarketUpdate] = useState<DailyMarketUpdate | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -239,6 +250,28 @@ export default function MarketPricesScreen() {
     }
   ];
 
+  const sampleDailyMarketUpdate: DailyMarketUpdate = {
+    date: new Date(),
+    status: 'open',
+    sentiment: 'bullish',
+    topGainers: [
+      { name: 'Tomato', change: 7.69 },
+      { name: 'Sugarcane', change: 1.79 },
+      { name: 'Rice (Basmati)', change: 3.14 }
+    ],
+    topLosers: [
+      { name: 'Onion', change: -4.80 },
+      { name: 'Wheat', change: -2.87 }
+    ],
+    keyEvents: [
+      '9:00 AM - Market Opens',
+      '12:30 PM - APMC Price Update',
+      '3:00 PM - Weather Alert: Good Rainfall Expected',
+      '5:30 PM - Market Close'
+    ],
+    marketIndex: 102.5
+  };
+
   const categories = ['All', 'Grains', 'Vegetables', 'Fruits', 'Spices', 'Dairy'];
   const timeframes = ['Today', 'Week', 'Month', 'Quarter'];
 
@@ -251,6 +284,7 @@ export default function MarketPricesScreen() {
       await fetchCommodityPrices();
       await fetchMarketNews();
       await fetchGroceryUpdates();
+      await fetchDailyMarketUpdate();
     } catch (error) {
       console.error('Error loading market data:', error);
     }
@@ -273,6 +307,15 @@ export default function MarketPricesScreen() {
       }, 1200);
     });
     setGroceryItems(response);
+  };
+
+  const fetchDailyMarketUpdate = async () => {
+    const response = await new Promise<DailyMarketUpdate>((resolve) => {
+      setTimeout(() => {
+        resolve(sampleDailyMarketUpdate);
+      }, 900);
+    });
+    setDailyMarketUpdate(response);
   };
 
   const simulateGoogleMarketAPI = async (): Promise<{ commodities: CommodityPrice[] }> => {
@@ -464,6 +507,90 @@ export default function MarketPricesScreen() {
     </View>
   );
 
+  const DailyMarketSummary = ({ update }: { update: DailyMarketUpdate }) => {
+    const getSentimentColor = () => {
+      switch (update.sentiment) {
+        case 'bullish':
+          return '#10B981';
+        case 'bearish':
+          return '#EF4444';
+        default:
+          return '#F59E0B';
+      }
+    };
+
+    const getStatusBadge = () => {
+      const statusColors: Record<string, string> = {
+        open: '#10B981',
+        'closing-soon': '#F59E0B',
+        closed: '#6B7280'
+      };
+      return statusColors[update.status] || '#999';
+    };
+
+    return (
+      <View style={styles.dailyMarketContainer}>
+        <View style={styles.dailyMarketHeader}>
+          <View>
+            <Text style={styles.dailyMarketTitle}>Today's Market Update</Text>
+            <Text style={styles.marketDate}>
+              {update.date.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}
+            </Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusBadge() }]}>
+            <Text style={styles.statusText}>{update.status.replace('-', ' ').toUpperCase()}</Text>
+          </View>
+        </View>
+
+        <View style={styles.sentimentContainer}>
+          <View style={[styles.sentimentIndicator, { backgroundColor: getSentimentColor() }]} />
+          <View style={styles.sentimentInfo}>
+            <Text style={styles.sentimentLabel}>Market Sentiment</Text>
+            <Text style={[styles.sentimentValue, { color: getSentimentColor() }]}>
+              {update.sentiment.toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.marketIndexBox}>
+            <Text style={styles.indexLabel}>Market Index</Text>
+            <Text style={styles.indexValue}>{update.marketIndex.toFixed(1)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.gainersLosersContainer}>
+          <View style={styles.gainersBox}>
+            <Text style={styles.gainersLosersTitle}>Top Gainers</Text>
+            {update.topGainers.map((item, idx) => (
+              <View key={idx} style={styles.gainLossItem}>
+                <Text style={styles.gainLossName}>{item.name}</Text>
+                <Text style={styles.gainText}>+{item.change.toFixed(2)}%</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.losersBox}>
+            <Text style={styles.gainersLosersTitle}>Top Losers</Text>
+            {update.topLosers.map((item, idx) => (
+              <View key={idx} style={styles.gainLossItem}>
+                <Text style={styles.gainLossName}>{item.name}</Text>
+                <Text style={styles.lossText}>{item.change.toFixed(2)}%</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.keyEventsContainer}>
+          <Text style={styles.keyEventsTitle}>Today's Key Events</Text>
+          {update.keyEvents.map((event, idx) => (
+            <View key={idx} style={styles.keyEventItem}>
+              <Ionicons name="time" size={14} color="#6B7280" style={styles.eventIcon} />
+              <Text style={styles.eventText}>{event}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -529,6 +656,8 @@ export default function MarketPricesScreen() {
         showsVerticalScrollIndicator={false}
       >
         {selectedCategory !== 'Grocery' && <MarketOverview />}
+
+        {selectedCategory !== 'Grocery' && dailyMarketUpdate && <DailyMarketSummary update={dailyMarketUpdate} />}
 
         {selectedCategory !== 'Grocery' && (
           <View style={styles.section}>
@@ -1051,5 +1180,161 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     marginLeft: 5,
+  },
+  dailyMarketContainer: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginVertical: 12,
+    borderRadius: 12,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  dailyMarketHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  dailyMarketTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  marketDate: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  sentimentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 8,
+  },
+  sentimentIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  sentimentInfo: {
+    flex: 1,
+  },
+  sentimentLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  sentimentValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  marketIndexBox: {
+    alignItems: 'flex-end',
+  },
+  indexLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  indexValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2E8B57',
+  },
+  gainersLosersContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 12,
+  },
+  gainersBox: {
+    flex: 1,
+    backgroundColor: '#F0FDF4',
+    borderLeftWidth: 3,
+    borderLeftColor: '#10B981',
+    padding: 12,
+    borderRadius: 8,
+  },
+  losersBox: {
+    flex: 1,
+    backgroundColor: '#FEF2F2',
+    borderLeftWidth: 3,
+    borderLeftColor: '#EF4444',
+    padding: 12,
+    borderRadius: 8,
+  },
+  gainersLosersTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  gainLossItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  gainLossName: {
+    fontSize: 12,
+    color: '#374151',
+    flex: 1,
+  },
+  gainText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#10B981',
+  },
+  lossText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#EF4444',
+  },
+  keyEventsContainer: {
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3B82F6',
+  },
+  keyEventsTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 10,
+  },
+  keyEventItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  eventIcon: {
+    marginRight: 8,
+  },
+  eventText: {
+    fontSize: 12,
+    color: '#4B5563',
+    flex: 1,
   },
 });
