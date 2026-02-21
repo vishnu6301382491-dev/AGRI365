@@ -1,10 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Cache for market prices (refresh every 30 minutes)
+let cachedPrices = null;
+let lastPriceFetch = null;
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
 // Middleware
 app.use(cors());
@@ -139,12 +145,140 @@ app.get('/api/weather', (req, res) => {
 });
 
 // Market Prices API
-app.get('/api/market-prices', (req, res) => {
-    res.json({
-        success: true,
-        data: mockMarketPrices,
-        timestamp: new Date().toISOString()
-    });
+app.get('/api/market-prices', async (req, res) => {
+    try {
+        const { state = 'Andhra Pradesh', market = 'Ongole' } = req.query;
+        
+        // Check cache
+        const now = Date.now();
+        if (cachedPrices && lastPriceFetch && (now - lastPriceFetch) < CACHE_DURATION) {
+            return res.json({
+                success: true,
+                data: cachedPrices,
+                source: 'AGMARKNET API (Cached)',
+                timestamp: new Date().toISOString(),
+                cacheAge: Math.round((now - lastPriceFetch) / 1000) + ' seconds'
+            });
+        }
+
+        // Fetch from AGMARKNET API (data.gov.in)
+        const apiUrl = 'https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070';
+        const response = await axios.get(apiUrl, {
+            params: {
+                'api-key': 'undefined', // data.gov.in API doesn't require key for public datasets
+                'format': 'json',
+                'limit': 100,
+                'filters[state]': state,
+                'filters[market]': market
+            },
+            timeout: 10000
+        });
+
+        let prices = [];
+
+        if (response.data && response.data.records) {
+            prices = response.data.records.map(record => ({
+                id: `${record.commodity}-${record.market}`,
+                name: record.commodity || 'Unknown',
+                market: record.market || market,
+                state: record.state || state,
+                minPrice: parseFloat(record.min_price) || 0,
+                maxPrice: parseFloat(record.max_price) || 0,
+                modalPrice: parseFloat(record.modal_price) || 0,
+                avgPrice: (parseFloat(record.min_price) + parseFloat(record.max_price)) / 2 || 0,
+                unit: '₹/kg',
+                lastUpdated: record.arrival_date || new Date().toISOString(),
+                trend: 'stable'
+            }));
+        }
+
+        // Cache the results
+        cachedPrices = prices;
+        lastPriceFetch = now;
+
+        res.json({
+            success: true,
+            data: prices.length > 0 ? prices : getMockPricesAsBackup(),
+            source: prices.length > 0 ? 'AGMARKNET API (Real Data)' : 'Mock Data (API unavailable)',
+            timestamp: new Date().toISOString(),
+            recordCount: prices.length,
+            filters: { state, market }
+        });
+    } catch (error) {
+        console.error('Error fetching market prices from AGMARKNET:', error.message);
+        
+        // Return mock data as fallback
+        res.json({
+            success: true,
+            data: getMockPricesAsBackup(),
+            source: 'Mock Data (API Error)',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Helper function to get mock prices as backup
+function getMockPricesAsBackup() {
+    return [
+        { id: '1', name: 'Rice (Basmati)', market: 'Ongole', state: 'Andhra Pradesh', minPrice: 72, maxPrice: 78, modalPrice: 75, avgPrice: 75, unit: '₹/kg', lastUpdated: new Date().toISOString(), trend: 'up' },
+        { id: '2', name: 'Chillies (Dried)', market: 'Ongole', state: 'Andhra Pradesh', minPrice: 95, maxPrice: 102, modalPrice: 98, avgPrice: 98.5, unit: '₹/kg', lastUpdated: new Date().toISOString(), trend: 'up' },
+        { id: '3', name: 'Turmeric', market: 'Ongole', state: 'Andhra Pradesh', minPrice: 62, maxPrice: 68, modalPrice: 65, avgPrice: 65, unit: '₹/kg', lastUpdated: new Date().toISOString(), trend: 'stable' },
+        { id: '4', name: 'Cotton', market: 'Ongole', state: 'Andhra Pradesh', minPrice: 50, maxPrice: 55, modalPrice: 52, avgPrice: 52.5, unit: '₹/kg', lastUpdated: new Date().toISOString(), trend: 'up' },
+        { id: '5', name: 'Groundnut', market: 'Ongole', state: 'Andhra Pradesh', minPrice: 65, maxPrice: 70, modalPrice: 67, avgPrice: 67.5, unit: '₹/kg', lastUpdated: new Date().toISOString(), trend: 'stable' }
+    ];
+}
+
+// Get prices by commodity name
+app.get('/api/market-prices/commodity/:name', async (req, res) => {
+    try {
+        const commodityName = req.params.name;
+        const { state = 'Andhra Pradesh' } = req.query;
+
+        const apiUrl = 'https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070';
+        const response = await axios.get(apiUrl, {
+            params: {
+                'api-key': 'undefined',
+                'format': 'json',
+                'limit': 100,
+                'filters[state]': state,
+                'filters[commodity]': commodityName
+            },
+            timeout: 10000
+        });
+
+        let prices = [];
+        if (response.data && response.data.records) {
+            prices = response.data.records.map(record => ({
+                id: `${record.commodity}-${record.market}`,
+                name: record.commodity || commodityName,
+                market: record.market || 'Various',
+                state: record.state || state,
+                minPrice: parseFloat(record.min_price) || 0,
+                maxPrice: parseFloat(record.max_price) || 0,
+                modalPrice: parseFloat(record.modal_price) || 0,
+                avgPrice: (parseFloat(record.min_price) + parseFloat(record.max_price)) / 2 || 0,
+                unit: '₹/kg',
+                lastUpdated: record.arrival_date || new Date().toISOString()
+            }));
+        }
+
+        res.json({
+            success: true,
+            data: prices.length > 0 ? prices : [],
+            source: prices.length > 0 ? 'AGMARKNET API' : 'No data',
+            timestamp: new Date().toISOString(),
+            commodity: commodityName,
+            state
+        });
+    } catch (error) {
+        console.error('Error fetching commodity prices:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch commodity prices',
+            error: error.message
+        });
+    }
 });
 
 // Pest Identification API
