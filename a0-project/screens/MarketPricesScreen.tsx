@@ -26,6 +26,7 @@ interface CommodityPrice {
   changePercent: number;
   unit: string;
   market: string;
+  category: 'Grains' | 'Vegetables' | 'Fruits' | 'Spices' | 'Dairy' | 'Other';
   lastUpdated: Date;
   trend: 'up' | 'down' | 'stable';
   prediction: {
@@ -87,6 +88,7 @@ export default function MarketPricesScreen() {
       changePercent: 3.14,
       unit: '₹/kg',
       market: 'Delhi Mandi',
+      category: 'Grains',
       lastUpdated: new Date(),
       trend: 'up',
       prediction: {
@@ -104,6 +106,7 @@ export default function MarketPricesScreen() {
       changePercent: -2.87,
       unit: '₹/kg',
       market: 'Punjab Mandi',
+      category: 'Grains',
       lastUpdated: new Date(),
       trend: 'down',
       prediction: {
@@ -121,6 +124,7 @@ export default function MarketPricesScreen() {
       changePercent: 7.69,
       unit: '₹/kg',
       market: 'Mumbai APMC',
+      category: 'Vegetables',
       lastUpdated: new Date(),
       trend: 'up',
       prediction: {
@@ -138,6 +142,7 @@ export default function MarketPricesScreen() {
       changePercent: -4.80,
       unit: '₹/kg',
       market: 'Nashik Market',
+      category: 'Vegetables',
       lastUpdated: new Date(),
       trend: 'down',
       prediction: {
@@ -155,6 +160,7 @@ export default function MarketPricesScreen() {
       changePercent: 2.29,
       unit: '₹/kg',
       market: 'Agra Mandi',
+      category: 'Vegetables',
       lastUpdated: new Date(),
       trend: 'up',
       prediction: {
@@ -172,6 +178,7 @@ export default function MarketPricesScreen() {
       changePercent: 1.79,
       unit: '₹/quintal',
       market: 'UP Sugar Mills',
+      category: 'Other',
       lastUpdated: new Date(),
       trend: 'up',
       prediction: {
@@ -189,6 +196,7 @@ export default function MarketPricesScreen() {
       changePercent: 2.82,
       unit: '₹/kg',
       market: 'Gujarat Mandi',
+      category: 'Other',
       lastUpdated: new Date(),
       trend: 'up',
       prediction: {
@@ -206,6 +214,7 @@ export default function MarketPricesScreen() {
       changePercent: 3.68,
       unit: '₹/kg',
       market: 'Guntur Market',
+      category: 'Spices',
       lastUpdated: new Date(),
       trend: 'up',
       prediction: {
@@ -223,6 +232,7 @@ export default function MarketPricesScreen() {
       changePercent: 1.79,
       unit: '₹/kg',
       market: 'Sangli Market',
+      category: 'Spices',
       lastUpdated: new Date(),
       trend: 'up',
       prediction: {
@@ -240,6 +250,7 @@ export default function MarketPricesScreen() {
       changePercent: -2.96,
       unit: '₹/kg',
       market: 'Indore Mandi',
+      category: 'Grains',
       lastUpdated: new Date(),
       trend: 'down',
       prediction: {
@@ -257,6 +268,7 @@ export default function MarketPricesScreen() {
       changePercent: 3.33,
       unit: '₹/kg',
       market: 'Karnataka Mandi',
+      category: 'Grains',
       lastUpdated: new Date(),
       trend: 'up',
       prediction: {
@@ -274,6 +286,7 @@ export default function MarketPricesScreen() {
       changePercent: 1.81,
       unit: '₹/kg',
       market: 'Tamil Nadu Mandi',
+      category: 'Grains',
       lastUpdated: new Date(),
       trend: 'up',
       prediction: {
@@ -447,10 +460,17 @@ export default function MarketPricesScreen() {
   };
 
   const filteredCommodities = useMemo(() => {
-    return commodities.filter(commodity =>
-      commodity.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [commodities, searchQuery]);
+    let filtered = commodities.filter(commodity => {
+      const matchesSearch = 
+        commodity.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        commodity.market.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = selectedCategory === 'All' || commodity.category === selectedCategory;
+      
+      return matchesSearch && matchesCategory;
+    });
+    return filtered;
+  }, [commodities, searchQuery, selectedCategory]);
 
   const filteredGroceryItems = useMemo(() => {
     return groceryItems.filter(item =>
